@@ -13,8 +13,11 @@ import { createFileRoute } from '@tanstack/react-router'
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as DemoImport } from './routes/demo'
 import { Route as IndexImport } from './routes/index'
+import { Route as GameIndexImport } from './routes/game/index'
 import { Route as AuthorIndexImport } from './routes/author/index'
+import { Route as GameNamespaceImport } from './routes/game/$namespace'
 import { Route as AuthorNamespaceImport } from './routes/author/$namespace'
 
 // Create Virtual Routes
@@ -28,13 +31,28 @@ const LoginLazyRoute = LoginLazyImport.update({
   getParentRoute: () => rootRoute,
 } as any).lazy(() => import('./routes/login.lazy').then((d) => d.Route))
 
+const DemoRoute = DemoImport.update({
+  path: '/demo',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const IndexRoute = IndexImport.update({
   path: '/',
   getParentRoute: () => rootRoute,
 } as any)
 
+const GameIndexRoute = GameIndexImport.update({
+  path: '/game/',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const AuthorIndexRoute = AuthorIndexImport.update({
   path: '/author/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const GameNamespaceRoute = GameNamespaceImport.update({
+  path: '/game/$namespace',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -54,6 +72,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoImport
+      parentRoute: typeof rootRoute
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -68,11 +93,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorNamespaceImport
       parentRoute: typeof rootRoute
     }
+    '/game/$namespace': {
+      id: '/game/$namespace'
+      path: '/game/$namespace'
+      fullPath: '/game/$namespace'
+      preLoaderRoute: typeof GameNamespaceImport
+      parentRoute: typeof rootRoute
+    }
     '/author/': {
       id: '/author/'
       path: '/author'
       fullPath: '/author'
       preLoaderRoute: typeof AuthorIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/game/': {
+      id: '/game/'
+      path: '/game'
+      fullPath: '/game'
+      preLoaderRoute: typeof GameIndexImport
       parentRoute: typeof rootRoute
     }
   }
@@ -82,9 +121,12 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren({
   IndexRoute,
+  DemoRoute,
   LoginLazyRoute,
   AuthorNamespaceRoute,
+  GameNamespaceRoute,
   AuthorIndexRoute,
+  GameIndexRoute,
 })
 
 /* prettier-ignore-end */
@@ -96,13 +138,19 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/demo",
         "/login",
         "/author/$namespace",
-        "/author/"
+        "/game/$namespace",
+        "/author/",
+        "/game/"
       ]
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/demo": {
+      "filePath": "demo.tsx"
     },
     "/login": {
       "filePath": "login.lazy.tsx"
@@ -110,8 +158,14 @@ export const routeTree = rootRoute.addChildren({
     "/author/$namespace": {
       "filePath": "author/$namespace.tsx"
     },
+    "/game/$namespace": {
+      "filePath": "game/$namespace.tsx"
+    },
     "/author/": {
       "filePath": "author/index.tsx"
+    },
+    "/game/": {
+      "filePath": "game/index.tsx"
     }
   }
 }
