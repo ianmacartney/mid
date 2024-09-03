@@ -1,0 +1,26 @@
+.splitflap [data-kind="digit"] {
+  color: white;
+  background-color: #0b121e;
+  font-family: sans-serif;
+  line-height: 1em;
+  width: 1ch;
+  height: 1em;
+  text-align: center;
+  border-radius: 0.2em;
+  font-size: 1.7em;
+  font-size: 30px;
+  line-height: 32px;
+}
+
+.splitflap [data-kind="digit"][data-mode="words"] {
+  width: 100%;
+  padding: 2px;
+}
+
+.splitflap [data-kind="digit"][data-mode="alpha"] {
+  width: 1.2ch;
+}
+
+.splitflap [data-kind="hinge"] {
+  height: 0.04em;
+}

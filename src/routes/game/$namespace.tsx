@@ -8,22 +8,22 @@ import {
   useQuery,
 } from "convex/react";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { FunctionReturnType } from "convex/server";
-import { Cross1Icon, TrashIcon } from "@radix-ui/react-icons";
-import { chunk } from "@/lib/utils";
 import type { Strategy } from "@convex/namespace";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Doc } from "@convex/_generated/dataModel";
+import { Flipboard } from "@/components/Flipboard";
+import {
+  CheckCheck,
+  Coins,
+  CornerDownRight,
+  Earth,
+  LetterText,
+  Trophy,
+} from "lucide-react";
+import { Flipped, Flipper } from "react-flip-toolkit";
 
 export const Route = createFileRoute("/game/$namespace")({
   component: NamespaceGame,
@@ -36,14 +36,16 @@ function NamespaceGame() {
   const { name, description, isEmpty } =
     useQuery(fn.getNamespace, { namespace }) || {};
   const convex = useConvex();
-  const updateNamespace = useMutation(fn.update);
-  const games = useQuery(fn.listGamesByNamespace, { namespace }) ?? [];
   const midpoints = usePaginatedQuery(
     fn.listMidpoints,
     { namespace },
     { initialNumItems: 10 },
   );
-  const [words, setWords] = useState({ left: "happy", right: "surprised", guess: "" });
+  const [words, setWords] = useState({
+    left: "happy",
+    right: "surprised",
+    guess: "",
+  });
   useEffect(() => {
     if (midpoints.results.length === 0) return;
     if (words.left || words.right) return;
@@ -60,249 +62,381 @@ function NamespaceGame() {
 
   const [strategy, setStrategy] = useState<Strategy>("rank");
 
+  const titles = [
+    "Matching Madness",
+    "Mixed Matches",
+    "Mashed Meanings",
+    "Word Fusion Frenzy",
+    "Semantic Shuffle",
+    "Lexical Labyrinth",
+    "Verbal Vortex",
+    "Synonym Symphony",
+    "Wordplay Wizardry",
+    "Linguistic Limbo",
+    "Phrasal Fusion",
+    "Vocabulary Vortex",
+    "Diction Dimension",
+    "Terminology Tango",
+    "Etymological Enigma",
+  ];
+  const [data, setData] = useState(titles[0]);
+  const [guess, setGuess] = useState("");
+  const [guessing, setGuessing] = useState(false);
+  const shuffleList = () => {
+    setData(titles[Math.floor(Math.random() * titles.length)]);
+  };
+  const [circleSwap, setCircleSwap] = useState(false);
+  const [randomize, setRandomize] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCircleSwap(!circleSwap), 5000);
+    return () => clearTimeout(timer);
+  }, [circleSwap]);
+
+  const makeGuess = () => {
+    if (guessResults.some((r) => r.guess === guess)) {
+      toast({ title: "Guess already made" });
+      return;
+    }
+    convex
+      .action(fn.makeGuess, {
+        ...words,
+        guess,
+        namespace,
+        strategy,
+      })
+      .then((results) => setGuessResults((arr) => [...arr, results]))
+      .catch((e) => {
+        e.currentTarget.value = guess;
+        toast({
+          title: "Error making guess",
+          description: e.message,
+        });
+      });
+    setWords((words) => ({ ...words, guess }));
+    setGuess("");
+
+    setRandomize(false);
+
+    setTimeout(() => setRandomize(true), 3000);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen h-full overflow-scroll bg-background text-foreground">
-      <main className="flex flex-col items-center justify-center w-full max-w-4xl gap-8 px-6 py-8">
-        <div className="flex items-center gap-4">
+      <main className="flex flex-col items-start justify-center w-full max-w-5xl gap-4 px-6 py-8">
+        <div className="flex items-start gap-4">
           <div className="flex flex-col">
-            <div className="font-bold">{name}</div>
-            <div className="">{description}</div>
-            {/* <div className="flex items-center gap-2"> */}
-            {/* </div> */}
+            <button onClick={shuffleList}>shuffle</button>
+            <div className="text-6xl text-yellow-400">
+              <Flipper flipKey={data}>
+                {data.split("").map((char, i) => {
+                  if (char === " ") {
+                    return <span key={char + i}>&nbsp;</span>;
+                  }
+                  return (
+                    <Flipped key={char + i} flipId={char}>
+                      <div className="text-yellow-400 inline-block">
+                        {char || ` `}
+                      </div>
+                    </Flipped>
+                  );
+                })}
+              </Flipper>
+            </div>
+            <div className="text-4xl">{description}</div>
+            <div className="absolute top-32 left-3/4">
+              <Flipper flipKey={circleSwap}>
+                <div className="relative w-64 h-32 mt-4">
+                  <Flipped flipId="circle1">
+                    <div
+                      className="absolute w-24 h-24 rounded-full bg-blue-500 opacity-50 transition-all duration-500 ease-in-out"
+                      style={{
+                        left: circleSwap ? "0" : "40px",
+                        top: "4px",
+                      }}
+                    ></div>
+                  </Flipped>
+                  <Flipped flipId="circle2">
+                    <div
+                      className="absolute w-24 h-24 rounded-full bg-red-500 opacity-50 transition-all duration-500 ease-in-out"
+                      style={{
+                        left: circleSwap ? "40px" : "0px",
+                        top: "4px",
+                      }}
+                    ></div>
+                  </Flipped>
+                </div>
+              </Flipper>
+            </div>
+            <div className="flex flex-col gap-1 py-12">
+              <div className="text-3xl text-gray-400 uppercase">
+                How to play
+              </div>
+              <div className="text-3xl">
+                Guess the word that best represents the combination of two
+                words. How many words can you guess before you run out of coins?
+              </div>
+            </div>
           </div>
         </div>
-        {!isEmpty && (
-          <div className="flex flex-col items-center w-full gap-2">
-            <div className="flex gap-4">
-              <Input
-                type="text"
-                placeholder="Left"
-                value={words.left}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    const left = e.currentTarget.value;
-                    e.preventDefault();
-                    setWords((words) => ({ ...words, left }));
-                  }
-                }}
-                className="w-[250px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              />
-              <div className="flex flex-col items-center gap-2">
-                <Input
-                  type="text"
-                  placeholder="Guess"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const guess = e.currentTarget.value;
-                      e.currentTarget.value = "";
-                      if (guessResults.some((r) => r.guess === guess)) {
-                        toast({ title: "Guess already made" });
-                        return;
-                      }
-                      convex
-                        .action(fn.makeGuess, {
-                          ...words,
-                          guess,
-                          namespace,
-                          strategy,
-                        })
-                        .then((results) =>
-                          setGuessResults((arr) => [...arr, results]),
-                        )
-                        .catch((e) => {
-                          e.currentTarget.value = guess;
-                          toast({
-                            title: "Error making guess",
-                            description: e.message,
-                          });
-                        });
-                      setWords((words) => ({ ...words, guess }));
-                    }
-                  }}
-                  className="w-[250px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                />
-                {[...guessResults]
-                  .sort((a, b) =>
-                    strategy === "lxr"
-                      ? b.lxrScore - a.lxrScore
-                      : b.score - a.score,
-                  )
-                  .slice(0, 10)
-                  .map((guess, i) => (
-                    <div
-                      key={guess.guess + i}
-                      className="px-3 py-1 text-sm font-medium rounded-md bg-muted text-muted-foreground"
-                    >
-                      {f(guess.leftScore)} ⬅️ {guess.guess}: {guess.rank}(
-                      {f(guess.score)}) ➡️ {f(guess.rightScore)}
-                    </div>
-                  ))}
+        <div className="text-3xl text-yellow-400 uppercase w-full">
+          <div className="flex flex-row items-center gap-2 justify-between">
+            <span>
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}{" "}
+            </span>
+            <span className="text-gray-700">
+              new game starts in{" "}
+              {(() => {
+                const now = new Date();
+                const midnight = new Date(
+                  now.getFullYear(),
+                  now.getMonth(),
+                  now.getDate() + 1,
+                );
+                const diff = midnight.getTime() - now.getTime();
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor(
+                  (diff % (1000 * 60 * 60)) / (1000 * 60),
+                );
+                return `${hours} hours and ${minutes} minutes`;
+              })()}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-row gap-4 w-full">
+          <div className="bg-slate-900 flex flex-col gap-6 py-6 px-4 w-3/4">
+            <div className="text-2xl text-slate-600 uppercase">Your stats</div>
+            <div className="flex flex-row justify-start items-start">
+              <div className="text-5xl  text-yellow-400 flex flex-col items-start gap-1 w-1/3">
+                <div className="flex flex-row items-end gap-4">
+                  <span className="rounded-sm text-slate-900 bg-yellow-400 p-1">
+                    <Earth size={36} strokeWidth={2} />
+                  </span>{" "}
+                  <div className="text-5xl font-bold-TOM">#1</div>
+                </div>
+                <div className="flex flex-row place-self-start">
+                  <div className="text-3xl text-white">your rank</div>
+                </div>
               </div>
-              <Input
-                type="text"
-                placeholder="Right"
-                value={words.right}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    const right = e.currentTarget.value;
-                    setWords((words) => ({ ...words, right }));
-                  }
-                }}
-                className="w-[250px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-            <div className="w-[750px] pt-96">
-              <div className="text-red-500">Admin</div>
-              <Select
-                value={strategy}
-                onValueChange={(v) => setStrategy(v as any)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Stragegy" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="rank">Reciprocal Rank Fusion</SelectItem>
-                  <SelectItem value="rankOverall">
-                    Reciprocal Rank Fusion (Overall)
-                  </SelectItem>
-                  <SelectItem value="midpoint">Midpoint</SelectItem>
-                  <SelectItem value="lxr">
-                    Left Distance * Right Distance
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-4 w-full">
-              <BasicSearch namespace={namespace} text={words.left} />
-              <Midpoint
-                namespace={namespace}
-                left={words.left}
-                right={words.right}
-                strategy={strategy}
-              />
-              <BasicSearch namespace={namespace} text={words.right} />
-            </div>
-
-            <div className="flex justify-between gap-4">
-              <div className="flex flex-col justify-center gap-2">
-                <span className="text-3xl font-bold">Midpoints</span>
-                {midpoints.results.map((midpoint) => (
-                  <div key={midpoint._id} className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setWords((words) => ({
-                          ...words,
-                          left: midpoint.left,
-                          right: midpoint.right,
-                        }));
-                      }}
-                    >
-                      {midpoint.left} - {midpoint.right}
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        convex
-                          .mutation(fn.deleteMidpoint, {
-                            namespace,
-                            midpointId: midpoint._id,
-                          })
-                          .catch((e) =>
-                            toast({
-                              title: "Error deleting midpoint",
-                              description: e.message,
-                            }),
-                          );
-                      }}
-                    >
-                      <TrashIcon />
-                    </Button>
-                  </div>
-                ))}
-                {midpoints.status === "CanLoadMore" && (
-                  <Button onClick={() => midpoints.loadMore(10)}>
-                    Load more
-                  </Button>
-                )}
+              <div className="text-5xl  text-yellow-400 flex flex-col items-start gap-1 w-1/3">
+                <div className="flex flex-row items-start justify-start gap-4">
+                  <span className="rounded-sm text-slate-900 bg-yellow-400 p-1">
+                    <Coins size={36} strokeWidth={2} />
+                  </span>{" "}
+                  <div className="text-5xl font-bold-TOM">100</div>
+                </div>
+                <div className="flex flex-row place-self-start">
+                  <div className="text-3xl text-white">coins</div>
+                </div>
               </div>
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-3xl font-bold">Games</span>
-                <div className="flex flex-col justify-center gap-2">
-                  {[...games].reverse().map((game) => (
-                    <div key={game._id} className="flex gap-2">
-                      <Button
-                        key={game._id}
-                        variant="secondary"
-                        onClick={() => {
-                          setWords((words) => ({
-                            ...words,
-                            left: game.left,
-                            right: game.right,
-                          }));
-                        }}
-                      >
-                        {game.left} - {game.right} {game.active ? "✅" : null}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          convex
-                            .mutation(fn.setGameActive, {
-                              namespace,
-                              gameId: game._id,
-                              active: !game.active,
-                            })
-                            .catch((e) =>
-                              toast({
-                                title: "Error deleting midpoint",
-                                description: e.message,
-                              }),
-                            );
-                        }}
-                      >
-                        {game.active ? <Cross1Icon /> : "Activate"}
-                      </Button>
-                    </div>
-                  ))}
+              <div className="text-5xl  text-yellow-400 flex flex-col items-start gap-1 w-1/3">
+                <div className="flex flex-row items-end gap-4">
+                  <span className="rounded-sm text-slate-900 bg-yellow-400 p-1">
+                    <LetterText size={36} strokeWidth={2} />
+                  </span>{" "}
+                  <div className="text-5xl font-bold-TOM">0</div>
+                </div>
+                <div className="flex flex-row place-self-start">
+                  <div className="text-3xl text-white">words</div>
                 </div>
               </div>
             </div>
-            <Words namespace={namespace} />
           </div>
-        )}
-        <Textarea
-          placeholder="Add text (skipping those already added) - enter JSON or line-delimited and hit enter"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              const titled = parseText(e.currentTarget.value);
-              e.currentTarget.blur();
-              e.currentTarget.disabled = true;
-              toast({ title: "Adding text" });
-              const target = e.target as HTMLTextAreaElement;
-              Promise.all(
-                chunk(titled, 1000).map((chunk) =>
-                  convex.action(fn.addText, { namespace, titled: chunk }),
-                ),
-              )
-                .then(() => {
-                  toast({ title: "Text added" });
-                  target.value = "";
-                })
-                .catch((e) => {
-                  toast({
-                    title: "Error adding text",
-                    description: e.message,
-                  });
-                })
-                .finally(() => {
-                  target.disabled = false;
-                });
-            }
-          }}
-          className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-        />
+          <div className="bg-slate-900 flex flex-row py-6 px-4 w-1/4">
+            <div className="flex flex-col gap-6">
+              <div className="text-2xl text-slate-600 uppercase">Level</div>
+              <div className="flex flex-row justify-start items-start">
+                <div className="text-5xl  text-yellow-400 flex flex-col items-start gap-1">
+                  <div className="flex flex-row items-end gap-4">
+                    <svg width="140" height="75" viewBox="0 0 140 75">
+                      <circle
+                        cx="40"
+                        cy="35"
+                        r="35"
+                        fill="#FFD700"
+                        fillOpacity="1"
+                      />
+                      <circle
+                        cx="80"
+                        cy="35"
+                        r="35"
+                        fill="#4169E1"
+                        fillOpacity="0.7"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex flex-row place-self-start">
+                    <div className="text-3xl text-white">Beginner</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* <div className="flex flex-col gap-6 w-full justify-center items-center">
+              <div className="flex flex-col items-center justify-between w-full h-4/5">
+                <svg width="40" height="25" viewBox="0 0 40 25">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="12"
+                    fill="#FFD700"
+                    fillOpacity="1"
+                  />
+                  <circle
+                    cx="28"
+                    cy="12"
+                    r="12"
+                    fill="#4169E1"
+                    fillOpacity="0.7"
+                  />
+                </svg>
+                <svg width="36" height="25" viewBox="0 0 36 25">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="12"
+                    fill="#FFD700"
+                    fillOpacity="1"
+                  />
+                  <circle
+                    cx="24"
+                    cy="12"
+                    r="12"
+                    fill="#4169E1"
+                    fillOpacity="0.7"
+                  />
+                </svg>
+                <svg width="30" height="25" viewBox="0 0 30 25">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="12"
+                    fill="#FFD700"
+                    fillOpacity="1"
+                  />
+                  <circle
+                    cx="18"
+                    cy="12"
+                    r="12"
+                    fill="#4169E1"
+                    fillOpacity="0.7"
+                  />
+                </svg>
+              </div>
+            </div> */}
+          </div>
+        </div>
+
+        <div className="flex flex-row gap-4 w-full">
+          <div className="w-1/2">
+            <div className="bg-slate-900 flex flex-col gap-6 py-6 px-4">
+              <div className="text-2xl text-slate-600 uppercase">
+                Let's Play
+              </div>
+              <div className="text-5xl text-yellow-400 flex flex-row items-end gap-4 pb-4">
+                <span className="rounded-sm text-slate-900 bg-yellow-400 p-1">
+                  <Coins size={36} strokeWidth={2} />
+                </span>{" "}
+                Game #1
+              </div>
+              {!isEmpty && (
+                <div className="flex flex-col items-start w-full gap-2 font-bold">
+                  <div className="flex flex-col items-start gap-4">
+                    <div className="text-5xl">{words.left}</div>
+                    <div className="text-5xl opacity-30">+</div>
+                    <div className="text-5xl">{words.right}</div>
+                    <div className="text-5xl opacity-30">=</div>
+
+                    <Input
+                      type="text"
+                      placeholder="???"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          makeGuess();
+                        }
+                      }}
+                      value={guess}
+                      onChange={(e) => setGuess(e.currentTarget.value)}
+                      className="w-full h-[100px] rounded-md border-0 bg-background px-3 py-2 text-6xl ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-yellow-400"
+                    />
+                    <button
+                      className=" bg-white bg-opacity-10 text-4xl py-2 px-4 rounded-md w-full flex flex-row justify-center items-center gap-2"
+                      onClick={() => {
+                        makeGuess();
+                      }}
+                    >
+                      <span className="text-yellow-400">
+                        <CornerDownRight size={36} strokeWidth={2} />
+                      </span>{" "}
+                      Place Your Guess
+                    </button>
+                    <div className="flex flex-col justify-center gap-2">
+                      {[...guessResults]
+                        .sort((a, b) =>
+                          strategy === "lxr"
+                            ? b.lxrScore - a.lxrScore
+                            : b.score - a.score,
+                        )
+                        .slice(0, 10)
+                        .map((guess, i) => (
+                          <div
+                            key={guess.guess + i}
+                            className="px-3 py-1 text-sm font-medium rounded-md bg-muted text-muted-foreground"
+                          >
+                            {f(guess.leftScore)} ⬅️ {guess.guess}: {guess.rank}(
+                            {f(guess.score)}) ➡️ {f(guess.rightScore)}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="w-1/2 flex flex-col gap-4">
+            <div className="bg-slate-900 flex flex-col gap-6 py-6 px-6">
+              <div className="text-2xl text-slate-600 uppercase">
+                Matching Words
+              </div>
+              <div className="text-5xl font-bold-TOM text-yellow-400 flex flex-row items-end gap-4">
+                <span className="rounded-sm text-slate-900 bg-yellow-400 p-1">
+                  <Trophy size={36} strokeWidth={2} />
+                </span>{" "}
+                TOP 10
+              </div>
+              <div className="flex flex-col gap-3 text-xl text-yellow-400">
+                <div className="flex flex-row gap-3 text-xl text-yellow-400">
+                  <div className="w-[45px]">RANK</div>
+                  <div className="w-[263px]">WORD</div>
+                  <div className="w-[87px]">PRICE</div>
+                </div>
+
+                <Midpoint
+                  namespace={namespace}
+                  left={words.left}
+                  right={words.right}
+                  strategy={strategy}
+                  randomize={randomize}
+                />
+              </div>
+
+              <div className="flex flex-row gap-2 mt-4">
+                <button className="bg-white bg-opacity-10 py-2 px-4 rounded-md text-xl">
+                  Hint (10 coins)
+                </button>
+                <button className="bg-white bg-opacity-10 py-2 px-4 rounded-md text-xl">
+                  Reveal & Skip (25 coins)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );
@@ -318,7 +452,7 @@ function Words({ namespace }: { namespace: string }) {
   );
   return (
     <div className="flex flex-col items-center gap-2 ">
-      <span className="text-3xl font-bold">Words</span>
+      <span className="text-3xl font-bold-TOM">Words</span>
       {texts.results.map((text) => (
         <div key={text._id} className="flex items-center gap-4">
           <div className="flex-1 text-sm font-medium">
@@ -432,11 +566,13 @@ function Midpoint({
   left,
   right,
   strategy,
+  randomize,
 }: {
   namespace: string;
   right: string;
   left: string;
   strategy: Strategy;
+  randomize: boolean;
 }) {
   const search = useAction(fn.midpointSearch);
   const makeGame = useMutation(fn.makeGame);
@@ -479,45 +615,20 @@ function Midpoint({
     });
   }, [namespace, left, right]);
   return (
-    <div className="flex flex-col items-center w-full gap-2">
-      <div className="text-lg">
-        {left} - {right}
-      </div>
-      <div className="flex flex-col justify-center gap-2">
-        {sorted.slice(0, 10).map((result, i) => {
-          const [left, right] = getLR(result);
-          return (
-            <div
-              key={result.title + i}
-              className="px-3 py-1 text-sm font-medium rounded-md bg-muted text-muted-foreground"
-            >
-              {f(left)} ⬅️ {result.title}:{f(getScore(result))} ➡️ {f(right)}
-            </div>
-          );
-        })}
-      </div>
-      <Button
-        onClick={() => {
-          search({ namespace, left, right, skipCache: true }).then(
-            (results) => {
-              setMidpoint(results);
-            },
-          );
-        }}
-      >
-        Refresh
-      </Button>
-      <Button
-        onClick={() => {
-          if (!midpoint) {
-            toast({ title: "No midpoint selected" });
-            return;
-          }
-          makeGame({ namespace, left: midpoint.left, right: midpoint.right });
-        }}
-      >
-        Create Game
-      </Button>
-    </div>
+    <>
+      {sorted.slice(0, 10).map((result, i) => {
+        //const [left, right] = getLR(result);
+        return (
+          <Flipboard
+            key={result.title + i}
+            rank={i + 1}
+            value={result.title}
+            points={i * 10}
+            obfuscate={false}
+            randomize={randomize}
+          />
+        );
+      })}
+    </>
   );
 }
